@@ -1,51 +1,51 @@
-# AI Blog Search
+# Smart Blog Analyzer: Agentic RAG with LangGraph
 
-A small Streamlit app that indexes a blog and answers questions about its content.
+A Streamlit application that performs intelligent, agent-driven Retrieval-Augmented Generation (RAG) on technical blogs. It uses LangGraph to route queries, grade document relevance, and autonomously rewrite prompts for optimal context retrieval.
 
-## How It Works
+## Core Features
 
-1. `WebBaseLoader` downloads the blog page.
-2. The page is split into text chunks.
-3. Gemini creates embeddings for the chunks.
-4. Qdrant stores and searches the embeddings.
-5. Gemini answers questions using the matching blog content.
+* **Agentic Workflow:** Utilizes a state graph to evaluate document relevance. If retrieved chunks lack context, the agent automatically transforms the query and searches again.
+* **Dynamic Text Chunking:** Features an adjustable UI slider to set document chunk sizes (200-1200 characters) with a dynamic 10% overlap, allowing users to experiment with retrieval performance.
+* **Modern LLM Stack:** Powered by Google's `gemini-3.5-flash` for high-speed routing and generation, alongside `gemini-embedding-001` for vectorization.
 
-## Setup
+## Architecture & Workflow
 
-Install the dependencies:
+1. **Document Ingestion:** `WebBaseLoader` reads the provided public URL. The text is split using a `RecursiveCharacterTextSplitter` based on the user's selected chunk size.
+2. **Vector Storage:** Chunks are embedded and upserted into a Qdrant Cloud collection (`qdrant_db`).
+3. **LangGraph Evaluation Loop:**
+   * **Retrieve:** The agent searches the Qdrant database using the user's query.
+   * **Grade:** An LLM with structured output evaluates the retrieved chunks. 
+   * **Rewrite:** If the chunks are graded as irrelevant, the agent rewrites the query to be more database-friendly and loops back to retrieval.
+4. **Generation:** Once relevant context is confirmed, a custom prompt template synthesizes the final answer.
+
+## Setup & Installation
+
+Install the required dependencies explicitly defined in the project:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Start the app:
+Launch the Streamlit interface:
 
 ```bash
 streamlit run app.py
 ```
 
-## Required Keys
+## Required Configuration
 
-Enter these values in the sidebar:
+To run the application, you must provide the following credentials in the sidebar:
 
-- **Qdrant Host URL**: Your Qdrant Cloud cluster URL.
-- **Qdrant API key**: An API key for that cluster.
-- **Gemini API key**: A Google AI Studio API key.
+* **Qdrant Host URL:** The complete URL of your Qdrant Cloud cluster (must include `https://` and port if applicable, e.g., `:6333`).
+* **Qdrant API Key:** The access key for your specific Qdrant cluster.
+* **Gemini API Key:** A valid Google AI Studio API key.
 
-Use API keys, not OAuth tokens. The app connects to Qdrant Cloud and does not start a local Qdrant server.
+*Note: The application connects directly to Qdrant Cloud and does not require a local Docker instance of Qdrant.*
 
-## Using the App
+## Usage Guide
 
-1. Enter the three keys and click **Done**.
-2. Paste a public blog URL.
-3. Click **Enter URL** to index the blog.
-4. Enter a question and click **Submit Query**.
-
-If you submit a question before indexing, the app automatically indexes the pasted URL first. Blog text is stored in the `qdrant_db` collection.
-
-## Notes
-
-- The app uses the Gemini `gemini-embedding-001` model for embeddings.
-- Blog text is split into chunks of about 500 characters.
-- Qdrant requests use a 120-second timeout to support larger blog pages.
-- A public URL is required so `WebBaseLoader` can read the page.
+1. Enter your API credentials in the sidebar and click **Save Settings**.
+2. Adjust the **Document Chunk Size** slider under *RAG Parameters* to dictate how the blog text will be split.
+3. Paste a public technical blog URL (e.g., a Hugging Face or LangChain post) into the primary input field.
+4. Click **Index Blog** to process, embed, and store the document chunks in Qdrant.
+5. Type your question into the query box and click **Submit Query**. The LangGraph agent will analyze the request, retrieve the data, and generate a response based on the blog context.
